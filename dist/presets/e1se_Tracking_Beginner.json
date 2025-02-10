@@ -1,0 +1,15 @@
+{
+    "stats_path": "C:\\Program Files (x86)\\Steam\\steamapps\\common\\FPSAimTrainer\\FPSAimTrainer\\stats",
+    "sheet_id": "sheet_id_here",
+    "scenario_name_ranges": [
+        "'Tracking Beginner'!A3:A10"
+    ],
+    "highscore_ranges": [
+        "'Tracking Beginner'!E3:E10"
+    ],
+    "average_ranges": [
+        "'Tracking Beginner'!D3:D10"
+    ],
+    "game": "Kovaaks",
+    "num_of_runs_to_average": 5
+}

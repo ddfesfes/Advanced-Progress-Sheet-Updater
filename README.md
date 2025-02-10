@@ -62,27 +62,17 @@ If you want to update to a newer release, all you have to do is download the new
     1. Click the `Browse`-Button on the top right and navigate to your Kovaak's stats folder.  
     2. Paste the link to your Kovaaks Progress Sheet into the entryfield.  
     3. Check the settings that you wish to use:  
-        `Calculate Averages`: The Program will calculate and fill the average columns. 
-        `Open Config`: The GUI window will open when the program is started (if you disable this you have to manually reenable it by editing the `config.json`).  
-        `Polling Interval`: Time between updates when using the `interval` Run Mode.  
         `Number of runs to average`: Amount of runs used to calculate the averages.  
         `Run Mode`: Types of updating the scores.  
-         1. `once`: Program will run once and then close.  
-         2. `watchdog`: Program will update sheet once a new score is added.  
-         3. `interval`: Program will update sheet once every x seconds.  
+         1. `watchdog`: Program will update sheet once a new score is added.  
         `Add/Remove Range`: Used to add/remove scenarios to track, it is recommended to not change this setting unless you know what you are doing.  
     
     #### Aimlab
     1. Paste the link to your Aimlab Progress Sheet into the entryfield.
     2. Check the settings that you wish to use:  
-        `Calculate Averages`: The Program will calculate and fill the average columns.  
-        `Open Config`: The GUI window will open when the program is started (if you disable this you have to manually reenable it by editing the `config.json`).  
-        `Polling Interval`: Time between updates when using the `interval` Run Mode.  
         `Number of runs to average`: Amount of runs used to calculate the averages.  
         `Run Mode`: Types of updating the scores.  
-         1. `once`: Program will run once and then close.  
-         2. `watchdog`: Program will update sheet once a new score is added.  
-         3. `interval`: Program will update sheet once every x seconds.
+         1. `watchdog`: Program will update sheet once a new score is added.  
 
 6. The first time you run the program, you will be prompted to:
 

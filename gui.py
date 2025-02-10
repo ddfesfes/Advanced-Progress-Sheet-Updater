@@ -1,236 +1,122 @@
 import json
+import os
 from tkinter import *
-from tkinter import filedialog
-from tkinter.ttk import Notebook
+from tkinter import ttk
 
+import sv_ttk
 
 class Gui:
     def __init__(self, **kwargs):
         # Read config and initialize Variables for Gui
         self.config = kwargs
-        if self.config["open_config"]:
-            self.window = Tk()
-            self.window.title("Progress Sheet Updater - Configurator")
-            self.window.geometry("890x400")
-            self.path = StringVar()
-            self.sheet_id_kovaaks = StringVar()
-            self.sheet_id_aimlab = StringVar()
-            self.calculate_averages = IntVar()
-            self.polling_interval = IntVar()
-            self.runs_to_average = IntVar()
-            self.open_config = IntVar()
-            self.run_mode = StringVar()
-            self.game = StringVar()
-            self.notebook = Notebook(self.window)
-            self.kovaaks_frame = Frame(self.notebook)
+        self.window = Tk()
 
-            # Initialize Rangelists
-            self.name_ranges_entries = []
-            self.highscore_ranges_entries = []
-            self.average_ranges_entries = []
-            self.range_frame_list = []
-            self.all_ranges_frame = Frame(self.kovaaks_frame)
+        self.window.title("Advanced Progress Sheet Updater")
+        self.window.geometry("890x400")
+        self.path = StringVar()
+        self.runs_to_average = IntVar()
+        self.game = StringVar()
 
-            # Give startvalue to variables
-            self.calculate_averages.set(int(self.config["calculate_averages"]))
-            self.sheet_id_kovaaks.set(self.config["sheet_id_kovaaks"])
-            self.sheet_id_aimlab.set(self.config["sheet_id_aimlab"])
-            self.polling_interval.set(int(self.config["polling_interval"]))
-            self.path.set(self.config["stats_path"])
-            self.runs_to_average.set(int(self.config["num_of_runs_to_average"]))
-            self.open_config.set(int(self.config["open_config"]))
-            self.run_mode.set(self.config["run_mode"])
-            self.run_mode_options = ["once",
-                                     "watchdog",
-                                     "interval"]
-            self.game.set(self.config["game"])
-            self.game_options = ["Aimlab",
-                                 "Kovaaks"]
+        self.preset_options = []
+        for i in os.listdir('./presets/'):
+            self.preset_options.append(str(i).replace('.json', ''))
 
-    def browse_path(self):
-        self.path.set(filedialog.askdirectory(initialdir=self.path.get(), title="Open Folder"))
+        self.preset = StringVar()
+        self.load_preset()  # Load preset on initialization
+        self.preset.trace_add("write", self.update_config)  # Update config when preset changes
 
-    def new_range(self):
-        self.range_frame_list.append(Frame(self.all_ranges_frame, padx=20))
-        # Labels
-        header_label = Label(self.range_frame_list[-1], text="Range Number: " + str(len(self.range_frame_list)))
-        name_label = Label(self.range_frame_list[-1], text="Name Range: ")
-        hs_label = Label(self.range_frame_list[-1], text="Highscore Range: ")
-        average_label = Label(self.range_frame_list[-1], text="Average Range: ")
-        # Add new entries
-        self.name_ranges_entries.append(Entry(self.range_frame_list[-1], width=32))
-        self.highscore_ranges_entries.append(Entry(self.range_frame_list[-1], width=32))
-        self.average_ranges_entries.append(Entry(self.range_frame_list[-1], width=32))
-        # Pack new entries
-        header_label.grid(row="0", column="0", columnspan="2")
-        name_label.grid(row="1", column="0")
-        self.name_ranges_entries[-1].grid(row="1", column="1")
-        hs_label.grid(row="2", column="0")
-        self.highscore_ranges_entries[-1].grid(row="2", column="1")
-        average_label.grid(row="3", column="0")
-        self.average_ranges_entries[-1].grid(row="3", column="1")
-        self.range_frame_list[-1].grid(row=(len(self.range_frame_list)-1) // 3, column=(len(self.range_frame_list)-1) % 3)
+        self.notebook = ttk.Notebook(self.window)
 
-    def delete_range(self):
-        self.range_frame_list[-1].destroy()
-        self.range_frame_list.pop()
-        self.name_ranges_entries.pop()
-        self.highscore_ranges_entries.pop()
-        self.average_ranges_entries.pop()
+        # Give start value to variables
+        self.path.set(self.config["stats_path"])
+        self.runs_to_average.set(int(self.config["num_of_runs_to_average"]))
+        self.game.set(self.config["game"])
+        self.game_options = ["Aimlab", "Kovaaks"]
+
+        # 입력 길이 제한을 위한 validate 명령어 설정
+        self.validate_length = self.window.register(self.validate_entry_length)
+
+    def load_preset(self):
+        if os.path.exists("preset.txt"):
+            with open("preset.txt", "r", encoding='utf-8') as infile:
+                preset_value = str(infile.read()).strip()
+                self.preset.set(preset_value)  # Load preset value
+                self.update_preset_options()  # Update options to include loaded preset
+
+    def update_preset_options(self):
+        # Ensure the loaded preset is in the options
+        if self.preset.get() not in self.preset_options:
+            self.preset_options.append(self.preset.get())
+        self.preset.set(self.preset.get())  # Set the current preset
+
+    def save_preset(self):
+        with open("preset.txt", "w", encoding='utf-8') as outfile:
+            outfile.write(str(self.preset.get()))
+
+    def update_config(self, *args):
+        selected_preset = self.preset.get()
+        # 선택한 프리셋에 따라 config 업데이트
+        data = json.load(open(f'./presets/{selected_preset}.json', 'r'))
+        self.config = data
+
+        self.runs_to_average.set(self.config["num_of_runs_to_average"])
+        self.game.set(self.config["game"])
 
     def finished(self):
         self.config["stats_path"] = self.path.get()
-        if self.sheet_id_kovaaks.get().find("docs.google.com") != -1:
-            full_link = self.sheet_id_kovaaks.get()
-            id_temp = full_link[full_link.find("/d/") + 3:]
-            id_temp = id_temp[:id_temp.find("/")]
-            self.sheet_id_kovaaks.set(id_temp)
-        if self.sheet_id_aimlab.get().find("docs.google.com") != -1:
-            full_link = self.sheet_id_aimlab.get()
-            id_temp = full_link[full_link.find("/d/") + 3:]
-            id_temp = id_temp[:id_temp.find("/")]
-            self.sheet_id_aimlab.set(id_temp)
-        self.config["sheet_id_kovaaks"] = self.sheet_id_kovaaks.get()
-        self.config["sheet_id_aimlab"] = self.sheet_id_aimlab.get()
-        self.config["calculate_averages"] = (self.calculate_averages.get() == 1)
         self.config["num_of_runs_to_average"] = self.runs_to_average.get()
-        self.config["polling_interval"] = self.polling_interval.get()
-        self.config["open_config"] = self.open_config.get() == 1
-        self.config["run_mode"] = self.run_mode.get()
-        self.config["scenario_name_ranges"] = [entry.get() for entry in self.name_ranges_entries]
-        self.config["highscore_ranges"] = [entry.get() for entry in self.highscore_ranges_entries]
-        self.config["average_ranges"] = [entry.get() for entry in self.average_ranges_entries]
-        current_tab = self.notebook.index("current")
-        if current_tab:
-            self.config["game"] = "Aimlab"
-        else:
-            self.config["game"] = "Kovaaks"
-        with open("config.json", "w") as outfile:
+
+        with open(f'./presets/{self.preset.get()}.json', "w") as outfile:
             json.dump(self.config, outfile, indent=4)
+        self.save_preset()
         self.window.destroy()
 
+    def validate_entry_length(self, new_value):
+        # 최대 길이 설정 (예: 3)
+        max_length = 3
+        return len(new_value) <= max_length  # 입력 길이가 최대 길이 이하인지 확인
+
     def main(self):
-        if self.config["open_config"]:
-            # Kovaaks tab of the notebook
-            # Gui for path
-            path_frame = Frame(self.kovaaks_frame)
-            pre_path_label = Label(path_frame, text="Kovaak's Stats Path: ")
-            browse_path_button = Button(path_frame, text="Browse", command=self.browse_path)
-            path_label = Label(path_frame, textvariable=self.path)
-            pre_path_label.pack(side="left")
-            path_label.pack(side="left")
-            browse_path_button.pack(side="right")
-            path_frame.pack(fill="x")
+        # Gui for advanced options
+        advanced_padding_x = 25
+        advanced_padding_y = 10
+        self.window.configure(padx=20, pady=10)  # 전체 창에 패딩 추가
 
-            # Gui for sheetid of Kovaaks sheet
-            sheet_id_frame_kovaaks = Frame(self.kovaaks_frame)
-            sheet_id_entry_kovaaks = Entry(sheet_id_frame_kovaaks, textvariable=self.sheet_id_kovaaks)
-            pre_sheet_id_label_kovaaks = Label(sheet_id_frame_kovaaks, text="Progress Sheet ID: ")
-            pre_sheet_id_label_kovaaks.pack(side="left")
-            sheet_id_entry_kovaaks.pack(fill="x")
-            sheet_id_frame_kovaaks.pack(fill="x")
+        advanced_frame = ttk.LabelFrame(self.window, text="Advanced Options", padding=(10, 10))  # ttk.LabelFrame으로 변경
+        
+        # Runs to average
+        runs_to_average_frame = ttk.Frame(advanced_frame, padding=(10, 10))  # 패딩 추가
+        runs_to_average_entry = ttk.Entry(
+            runs_to_average_frame, 
+            textvariable=self.runs_to_average, 
+            width=3, 
+            validate="key",  # 키 입력 시 검증
+            validatecommand=(self.validate_length, '%P')  # 입력 값 검증
+        )
+        runs_to_average_label = ttk.Label(runs_to_average_frame, text="Number of runs to average")  # Label로 변경
+        runs_to_average_entry.pack(side="left")
+        runs_to_average_label.pack(side="left")
+        runs_to_average_frame.grid(row="0", column="3", padx=advanced_padding_x, pady=advanced_padding_y)
 
-            # Aimlab tab of the notebook
-            aimlab_frame = Frame(self.notebook)
+        # 드롭다운 리스트 추가
+        preset_frame = ttk.Frame(self.window, padding=(10, 10))  # 패딩 추가
+        preset_label = ttk.Label(preset_frame, text="Select Preset: ")  # Label로 변경
+        preset_dropdown = ttk.OptionMenu(preset_frame, self.preset, self.preset.get(), *self.preset_options)  # OptionMenu 생성
+        preset_label.pack(side="left")
+        preset_dropdown.pack(side="left")
+        preset_frame.pack(fill="x")
 
-            # Gui for sheetid of Aimlab sheet
-            sheet_id_frame_aimlab = Frame(aimlab_frame)
-            sheet_id_entry_aimlab = Entry(sheet_id_frame_aimlab, textvariable=self.sheet_id_aimlab)
-            pre_sheet_id_label_aimlab = Label(sheet_id_frame_aimlab, text="Progress Sheet ID: ")
-            pre_sheet_id_label_aimlab.pack(side="left")
-            sheet_id_entry_aimlab.pack(fill="x")
-            sheet_id_frame_aimlab.pack(fill="x")
+        # Finished button
+        finished_frame = ttk.Frame(self.window, padding=(10, 10))  # 패딩 추가
+        finished_button = ttk.Button(finished_frame, command=self.finished, text="Finish")  # Button으로 변경
+        finished_button.grid(row="1", column="1", columnspan="2")
 
-            # Gui for advanced options
-            advanced_padding_x = 25
-            advanced_padding_y = 10
-            advanced_frame = LabelFrame(self.window, text="Advanced Options")
-            # Open config
-            open_config_box = Checkbutton(advanced_frame, text="Open config", variable=self.open_config)
-            open_config_box.grid(row="0", column="0", padx=advanced_padding_x, pady=advanced_padding_y)
-            # Polling interval
-            polling_interval_frame = Frame(advanced_frame)
-            polling_interval_label = Label(polling_interval_frame, text="Polling Interval")
-            polling_interval_entry = Entry(polling_interval_frame, textvariable=self.polling_interval, width=5)
-            polling_interval_entry.pack(side="left")
-            polling_interval_label.pack(side="left")
-            polling_interval_frame.grid(row="0", column="1", padx=advanced_padding_x, pady=advanced_padding_y)
-            # Run mode
-            run_mode_frame = Frame(advanced_frame)
-            run_mode_label = Label(run_mode_frame, text="Run Mode")
-            run_mode_dropdown = OptionMenu(run_mode_frame, self.run_mode, *self.run_mode_options)
-            run_mode_label.pack(side="left")
-            run_mode_dropdown.pack(side="left")
-            run_mode_frame.grid(row="0", column="2", padx=advanced_padding_x, pady=advanced_padding_y)
+        # Pack all frames
+        self.notebook.pack(padx=10, pady=10)  # 노트북에 패딩 추가
+        advanced_frame.pack(fill="x", padx=10, pady=10)  # 패딩 추가
+        finished_frame.pack(padx=10, pady=10)  # 패딩 추가
 
-            # Runs to average
-            runs_to_average_frame = Frame(advanced_frame)
-            runs_to_average_entry = Entry(runs_to_average_frame, textvariable=self.runs_to_average, width=3)
-            runs_to_average_label = Label(runs_to_average_frame, text="Number of runs to average")
-            runs_to_average_entry.pack(side="left")
-            runs_to_average_label.pack(side="left")
-            # Calculate Averages (Kovaaks only atm)
-            calculate_averages_box = Checkbutton(runs_to_average_frame, variable=self.calculate_averages,
-                                                 text="Calculate Averages")
-            calculate_averages_box.pack(side="top")
-            runs_to_average_frame.grid(row="0", column="3", padx=advanced_padding_x, pady=advanced_padding_y)
+        sv_ttk.set_theme("dark")
 
-            # Ranges
-            i = 0
-            while i < len(self.config["scenario_name_ranges"]):
-                self.range_frame_list.append(Frame(self.all_ranges_frame, padx=10))
-                # Labels
-                header_label = Label(self.range_frame_list[i], text="Range Number: " + str(i + 1))
-                name_label = Label(self.range_frame_list[i], text="Name Range: ")
-                hs_label = Label(self.range_frame_list[i], text="Highscore Range: ")
-                average_label = Label(self.range_frame_list[i], text="Average Range: ")
-                # Add new entries
-                self.name_ranges_entries.append(Entry(self.range_frame_list[i], width=32))
-                self.highscore_ranges_entries.append(Entry(self.range_frame_list[i], width=32))
-                self.average_ranges_entries.append(Entry(self.range_frame_list[i], width=32))
-                # Set value of entries
-                self.name_ranges_entries[i].insert(0, self.config["scenario_name_ranges"][i])
-                self.highscore_ranges_entries[i].insert(0, self.config["highscore_ranges"][i])
-                self.average_ranges_entries[i].insert(0, self.config["average_ranges"][i])
-                # Pack entries
-                header_label.grid(row="0", column="0", columnspan="2")
-                name_label.grid(row="1", column="0")
-                self.name_ranges_entries[i].grid(row="1", column="1")
-                hs_label.grid(row="2", column="0")
-                self.highscore_ranges_entries[i].grid(row="2", column="1")
-                average_label.grid(row="3", column="0")
-                self.average_ranges_entries[i].grid(row="3", column="1")
-                self.range_frame_list[i].grid(row=i // 3, column=i % 3)
-                i += 1
-
-            self.all_ranges_frame.pack(fill="x")
-            # New Range/Delete Range buttons
-            range_button_frame = Frame(self.kovaaks_frame)
-            new_range_button = Button(range_button_frame, command=self.new_range, text="Add Range")
-            new_range_button.grid(row="0", column="0", columnspan="2")
-            del_range_button = Button(range_button_frame, command=self.delete_range, text="Remove Range")
-            del_range_button.grid(row="0", column="2", columnspan="2")
-            range_button_frame.pack()
-
-            # Finished button
-            finished_frame = Frame(self.window)
-            finished_button = Button(finished_frame, command=self.finished, text="Finish")
-            finished_button.grid(row="1", column="1", columnspan="2")
-
-            # Pack all frames
-            self.kovaaks_frame.pack(fill="x")
-            aimlab_frame.pack(fill="x")
-            self.notebook.add(self.kovaaks_frame, text="Kovaaks")
-            self.notebook.add(aimlab_frame, text="Aimlab")
-            self.notebook.pack()
-            advanced_frame.pack(fill="x")
-            finished_frame.pack()
-
-            # Choose correct notebook tab
-            if self.config["game"] == "Aimlab":
-                self.notebook.select(aimlab_frame)
-            else:
-                self.notebook.select(self.kovaaks_frame)
-
-            # Run mainloop
-            self.window.mainloop()
+        # Run mainloop
+        self.window.mainloop()

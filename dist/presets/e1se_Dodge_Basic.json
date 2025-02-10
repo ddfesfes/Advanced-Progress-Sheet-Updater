@@ -1,0 +1,15 @@
+{
+    "stats_path": "C:\\Program Files (x86)\\Steam\\steamapps\\common\\FPSAimTrainer\\FPSAimTrainer\\stats",
+    "sheet_id": "sheet_id_here",
+    "scenario_name_ranges": [
+        "'e1se Dodge Basic'!A3:A9"
+    ],
+    "highscore_ranges": [
+        "'e1se Dodge Basic'!E3:E9"
+    ],
+    "average_ranges": [
+        "'e1se Dodge Basic'!D3:D9"
+    ],
+    "game": "Kovaaks",
+    "num_of_runs_to_average": 5
+}
